@@ -2423,8 +2423,7 @@ INNER JOIN
   WHERE GRIDOP.RDWAY_STAT.RDWAY_STAT_TYPE_ID NOT IN(1, 2, 3)
   ) Query1 ON Query1.RDBD_GMTRY_LN_ID           = GRIDOP.RTE_DEFN_LN.RDBD_GMTRY_LN_ID
 WHERE GRIDOP.RTE_DEFN_LN.RTE_DEFN_LN_PRMRY_FLAG = 1
-AND (GRIDOP.MAX_SPD_LMT.MAX_SPD_LMT_MS NOT IN (0)
-OR GRIDOP.MAX_SPD_LMT.MAX_SPD_LMT_MS IS NOT NULL)
+AND GRIDOP.MAX_SPD_LMT.MAX_SPD_LMT_MS NOT IN (0)
 """
 
 #33 Median
@@ -5451,8 +5450,8 @@ INNER JOIN
   WHERE GRIDOP.RDWAY_STAT.RDWAY_STAT_TYPE_ID NOT IN(1, 2, 3)
   ) Query1 ON Query1.RDBD_GMTRY_LN_ID           = GRIDOP.RTE_DEFN_LN.RDBD_GMTRY_LN_ID
 WHERE GRIDOP.RTE_DEFN_LN.RTE_DEFN_LN_PRMRY_FLAG = 1
-AND GRIDOP.TRK_RTE_TYPE.TRK_RTE_TYPE_ID !=(1)
 """
+###AND GRIDOP.TRK_RTE_TYPE.TRK_RTE_TYPE_ID !=(1)
 
 #78 Usual Right Of Way Width
 Usual_Right_Of_Way_Width = """
@@ -7778,7 +7777,7 @@ SELECT GRIDOP.RTE_DEFN_LN.RTE_DEFN_LN_NM RTE_NM,
     WHEN GRIDOP.RDBD_TYPE.RDBD_TYPE_CD = 'TA' THEN 'TA'
     WHEN GRIDOP.RDBD_TYPE.RDBD_TYPE_CD = 'NA' THEN 'NA'
     WHEN GRIDOP.RDBD_TYPE.RDBD_TYPE_CD = 'GS' THEN 'GS'
-  END AS RDBD_TYPE,,
+  END AS RDBD_TYPE,
   GRIDOP.ASSET_LN.ASSET_LN_BEGIN_DFO_MS BEGIN_DFO,
   GRIDOP.ASSET_LN.ASSET_LN_END_DFO_MS END_DFO,
   GRIDOP.ASSET_LN_TYPE.ASSET_LN_TYPE_DSCR ASSET_NM,
@@ -8987,10 +8986,10 @@ def Export(Query_Name,export_name=""):
     gdb_Name = "GRID_Exports.gdb"
 
     ##comanche connections
-    comancheConnection = "Database Connections\Comanche_ADMIN.sde"
+    comancheConnection = "Database Connections\APP_TPP_GIS_ADMIN.sde"
     envSet = "prod"  ###CHANGE THIS BACK TO PROD
     comancheDataset = "TPP_GIS.APP_TPP_GIS_ADMIN.GRID_Export"
-    comanchePath = "Database Connections\Comanche_ADMIN.sde\TPP_GIS.APP_TPP_GIS_ADMIN.GRID_Export"
+    comanchePath = "Database Connections\APP_TPP_GIS_ADMIN.sde\TPP_GIS.APP_TPP_GIS_ADMIN.GRID_Export"
     ##comanchePath = "Database Connections\Comanche.sde\TPP_GIS.APP_TPP_GIS_ADMIN.GRID_Export_Assets"
 
 
@@ -8999,7 +8998,7 @@ def Export(Query_Name,export_name=""):
 
     gdb_path = os.path.join(localPath,gdb_Name)
 
-    tableName = "GRID_" + export_name
+    tableName = "TxDOT_" + export_name
     fullPath = os.path.join(gdb_path, tableName)
     comanchefullPath = os.path.join(comanchePath, "TPP_GIS.APP_TPP_GIS_ADMIN." + tableName)
     print comanchefullPath
@@ -9037,21 +9036,27 @@ def Export(Query_Name,export_name=""):
 
     logging.debug("Clearing Database Cache for {}".format(export_name))
     print "Clearing Database Cache..." + time.strftime("%m_%d_%Y_%H:%M:%S")
+
     arcpy.ClearWorkspaceCache_management(input_database)
     query = Query_Name
     ##tableName = outLayerName
+
     print "Creating query layer..." + time.strftime("%m_%d_%Y_%H:%M:%S")
     logging.debug("Creating query layer for {}".format(export_name))
     out_layer_name = os.path.join("in_memory",("tempQueryLayer"))
+
     global sr
     sr = arcpy.SpatialReference("NAD 1983") ##Is this where the spatial reference can be modified?
+
     arcpy.MakeQueryLayer_management(input_database, out_layer_name, query,"","",3081,sr) ##4326 - WGS 1984
     out_feature_class = os.path.join(workspace,tableName)
     print "Creating feature class.."
     logging.debug("Creating feature class for {}".format(export_name))
+
     arcpy.CopyFeatures_management(out_layer_name,out_feature_class)
     print"Deleting temp feature layer..." + time.strftime("%m_%d_%Y_%H:%M:%S")
     logging.debug("Deleting temp feature layer for {}".format(export_name))
+
     arcpy.Delete_management(out_layer_name)
     print "Fixing projection..." + time.strftime("%m_%d_%Y_%H:%M:%S") ##Nicole added for spatial reference change from NAD1983 to TSMS
     logging.debug("Fixing projection for {}".format(export_name))
@@ -9074,16 +9079,16 @@ def Export(Query_Name,export_name=""):
     print tableName
 
     #Apply measures to exports
-    if(tableName == "GRID_Control_Section"):
+    if(tableName == ("TxDOT_Control_Section" + Date)): ####changed this whole section from GRID to TxDOT, 4/16/2019
         print "Working on applying measures."
         logging.debug("Applying measures for {}".format(export_name))
         applyMeasuresCS(tableName)
         logging.debug("Applying BIN field for {}".format(export_name))
         applyBinCS(tableName)
-    elif(tableName == "GRID_Concurrencies"):
+    elif(tableName == "TxDOT_Concurrencies"):
         logging.debug("Applying measures for {}".format(export_name))
         applyMeasuresCon(tableName)
-    elif(tableName == "GRID_Reference_Marker"):
+    elif(tableName == "TxDOT_Reference_Marker"):
         logging.debug("Reference Markers don't need measures".format(export_name))
         print("Reference Markers isn't getting measures")
     else:
@@ -9092,18 +9097,18 @@ def Export(Query_Name,export_name=""):
 
 
     ####push feature class to comanche
-    ###print("Pushing feature class to comanche dataset...")
-    ###if arcpy.Exists(comanchefullPath):
-    ###    logging.debug("Pushing feature class to comanche for {}".format(export_name))
-    ###    arcpy.Rename_management(comanchefullPath, comanchefullPath + "_forDelete")
+    #####print("Pushing feature class to comanche dataset...")
+    #####if arcpy.Exists(comanchefullPath):
+        #####logging.debug("Pushing feature class to comanche for {}".format(export_name))
+        #####arcpy.Rename_management(comanchefullPath, comanchefullPath + "_forDelete")
 
-    ###arcpy.FeatureClassToFeatureClass_conversion(fullPath, comanchePath, tableName)
+   ##### arcpy.FeatureClassToFeatureClass_conversion(fullPath, comanchePath, tableName)
 
-    ###if arcpy.Exists(comanchefullPath + "_forDelete"):
-    ###   arcpy.Delete_management(comanchefullPath + "_forDelete")
+    #####if arcpy.Exists(comanchefullPath + "_forDelete"):
+       #####arcpy.Delete_management(comanchefullPath + "_forDelete")
 
-    print "Script end..." + time.strftime("%m_%d_%Y_%H:%M:%S")
-    logging.debug("Script end. Finished exporting {}".format(export_name))
+    #####print "Script end..." + time.strftime("%m_%d_%Y_%H:%M:%S")
+    #####logging.debug("Script end. Finished exporting {}".format(export_name))
 
 print "Checking path variables..."
 sys.path.append("C:\GRID_Exports\Scripts")
@@ -9167,10 +9172,10 @@ def applyMeasuresCS(tableName):
 
 
     #Rename new full of measures feature class to just GRID_Control_Section
-    print "Renmaing beautiful, new, measured control_section_m feature class..." + time.strftime("%m_%d_%Y_%H:%M:%S")
+    print "Renaming beautiful, new, measured control_section_m feature class..." + time.strftime("%m_%d_%Y_%H:%M:%S")
     logging.debug("Renaming measured export for {}".format(tableName))
     arcpy.Rename_management(mName, tableName)
-    print "Done renmaing" + time.strftime("%m_%d_%Y_%H:%M:%S")
+    print "Done renaming" + time.strftime("%m_%d_%Y_%H:%M:%S")
 
 
     print ("Finished applying measures")
@@ -9287,10 +9292,10 @@ def applyMeasuresAll(tableName):
 
 
     #Rename new full of measures feature class to just GRID_Control_Section
-    print "Renmaing beautiful, new, measured asset_m feature class..." + time.strftime("%m_%d_%Y_%H:%M:%S")
+    print "Renaming beautiful, new, measured asset_m feature class..." + time.strftime("%m_%d_%Y_%H:%M:%S")
     logging.debug("Renaming measure export for {}".format(tableName))
     arcpy.Rename_management(mName, tableName)
-    print "Done renmaing" + time.strftime("%m_%d_%Y_%H:%M:%S")
+    print "Done renaming" + time.strftime("%m_%d_%Y_%H:%M:%S")
 
 
     print ("Finished applying measures")
@@ -9325,8 +9330,6 @@ def applyMeasuresCon(tableName):
     # Replace a layer/table view name with a path to a dataset (which can be a layer file) or create the layer/table view within the script
     # The following inputs are layers or table views: "GRID_Control_Section_m", "GRID_Control_Section"
     print "Joining Concurrencies feature class to feature class with measures..." + time.strftime("%m_%d_%Y_%H:%M:%S")
-
-    ##exit() ##################INSERTEDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD this is the quit command that I implementsed just now
 
     ##list field names
     fields2 = arcpy.ListFields(tableName)
@@ -9417,57 +9420,61 @@ def SendErrorMessage():
 
 
 ####disconnecting users from comanche feature dataset
-###print ("Disconnecting users from comanche.sde...")
-###logging.debug("Disconnecting users from comanche.sde...")
-###dataBase = "Database Connections\Comanche_ADMIN.sde"
+#####print ("Disconnecting users from comanche.sde...")
+#####logging.debug("Disconnecting users from comanche.sde...")
+#####dataBase = "Database Connections\APP_TPP_GIS_ADMIN.sde"
 
 #####block new connections to the database
-###arcpy.AcceptConnections(dataBase, False)
+#####arcpy.AcceptConnections(dataBase, False)
+#####print "blocking new connections to the database..."
 
 #####disconnect all users from the database
-###arcpy.DisconnectUser(dataBase, "ALL")
-
+#####arcpy.DisconnectUser(dataBase, "ALL")
+#####print "disconnecting all users from the database"
 
 Date =  time.strftime('_%m_%d_%Y')
+print Date
 
 
-#####Export(Evacuation_Route, "Evacuation_Route")
-#####Export(Government_Control, "Government_Control")
-#####Export(Hazardous_Route, "Hazardous_Route")
-#####Export(High_Occupancy_Vehicle_Facility, "High_Occupancy_Vehicle_Facility")
-#####Export(High_Occupancy_Vehicle_Lane, "High_Occupancy_Vehicle_Lane")
-#####Export(Inside_Curb, "Inside_Curb")
-#####Export(Inside_Shoulder, "Inside_Shoulder")
-#####Export(Inside_Shoulder_Use, "Inside_Shoulder_Use")
-#####Export(Inside_Shoulder_Width, "Inside_Shoulder_Width")
+#####Export(Evacuation_Route, ("Evacuation_Route" + Date))
+#####Export(Government_Control, ("Government_Control" + Date))
+#####Export(Hazardous_Route, ("Hazardous_Route"+ Date))
+#####Export(High_Occupancy_Vehicle_Facility, ("High_Occupancy_Vehicle_Facility"+ Date))
+#####Export(High_Occupancy_Vehicle_Lane, ("High_Occupancy_Vehicle_Lane"+ Date))
+#####Export(Inside_Curb, ("Inside_Curb"+ Date))
+#####Export(Inside_Shoulder, ("Inside_Shoulder"+ Date))
+#####Export(Inside_Shoulder_Use, ("Inside_Shoulder_Use"+ Date))
+#####Export(Inside_Shoulder_Width, ("Inside_Shoulder_Width"+ Date))
 #####Export(Speed_Limit, ("Speed_Limit" + Date))
 #####Export(Reference_Marker, "Reference_Marker")
-#####Export(Functional_System, "Functional_System")
-#####Export(Lane_Width, "Lane_Width")
-#####Export(Maintenance_Section, "Maintenance_Section")
+#####Export(Functional_System, ("Functional_System"+ Date))
+#####Export(Lane_Width, ("Lane_Width"+ Date))
+#####Export(Maintenance_Section, ("Maintenance_Section"+ Date))
 #####Export(Median, ("Median" + Date))
-#####Export(Median_Width, "Median_Width")
-#####Export(Minimum_Right_of_Way_Width, "Minimum_Right_of_Way_Width")
-#####Export(Number_of_Through_Lanes, "Number_of_Through_Lanes")
-#####Export(Roadway_Status, "Roadway_Status")
-#####Export(Outside_Curb, "Outside_Curb")
-#####Export(Outside_Shoulder, "Outside_Shoulder")
-#####Export(Outside_Shoulder_Use, "Outside_Shoulder_Use")
-#####Export(Outside_Shoulder_Width, "Outside_Shoulder_Width")
-#####Export(Ownership, "Ownership")
-#####Export(Peak_Direction_Toll, "Peak_Direction_Toll")
-#####Export(Roadbed_Base, "Roadbed_Base")
-#####Export(Roadbed_Surface, "Roadbed_Surface")
-#####Export(Roadbed_Width, "Roadbed_Width")
-Export(Roadway_Design, ("Roadway_Design" + Date))
-Export(Roadway_Maintenance_Agency, ("Roadway_Maintenance_Agency" + Date))
-Export(STRAHNET, ("STRAHNET" + Date))
-Export(Truck_Route, ("Truck_Route" + Date))
-Export(Usual_Right_Of_Way_Width, ("Usual_Right_Of_Way_Width" + Date))
-#####Export(Control_Section, "Control_Section")
+#####Export(Median_Width, ("Median_Width"+ Date))
+#####Export(Minimum_Right_of_Way_Width, ("Minimum_Right_of_Way_Width"+ Date))
+#####Export(Number_of_Through_Lanes, ("Number_of_Through_Lanes"+ Date))
+#####Export(Roadway_Status, ("Roadway_Status"+ Date))
+#####Export(Outside_Curb, ("Outside_Curb"+ Date))
+#####Export(Outside_Shoulder, ("Outside_Shoulder"+ Date))
+#####Export(Outside_Shoulder_Use, ("Outside_Shoulder_Use"+ Date))
+#####Export(Outside_Shoulder_Width, ("Outside_Shoulder_Width"+ Date))
+#####Export(Ownership, ("Ownership"+ Date))
+#####Export(Peak_Direction_Toll, ("Peak_Direction_Toll"+ Date))
+#####Export(Roadbed_Base, ("Roadbed_Base"+ Date))
+#####Export(Roadbed_Surface, ("Roadbed_Surface"+ Date))
+#####Export(Roadbed_Width, ("Roadbed_Width"+ Date))
+#####Export(Roadway_Design, ("Roadway_Design" + Date))
+#####Export(Roadway_Maintenance_Agency, ("Roadway_Maintenance_Agency" + Date))
+#####Export(Roadway_Status, ("Roadway_Status" + Date))
+#####Export(STRAHNET, ("STRAHNET" + Date))
+#####Export(Truck_Route, ("Truck_Route" + Date))
+#####Export(Usual_Right_Of_Way_Width, ("Usual_Right_Of_Way_Width" + Date))
+Export(Control_Section, ("Control_Section" + Date))
 Export(Street_Definition, ("Street_Definition" + Date))
 Export(Toll, ("Toll" + Date))
-#####Export(Concurrencies, "Concurrencies")
+Export(Concurrencies, "Concurrencies")
+Export(Tunnel, ("Tunnel" + Date))
 
 try:
 
@@ -9603,13 +9610,14 @@ except:
     SendErrorMessage()
 
 ####Register GRID_Exports dataset as versioned
-###datasetName = "Database Connections\Comanche_ADMIN.sde\TPP_GIS.APP_TPP_GIS_ADMIN.GRID_Export"
-###arcpy.RegisterAsVersioned_management(datasetName)
+#####datasetName = "Database Connections\APP_TPP_GIS_ADMIN.sde\TPP_GIS.APP_TPP_GIS_ADMIN.GRID_Export"
+#####arcpy.RegisterAsVersioned_management(datasetName)
+#####print "Registered as Versioned"
 
 ####Allow users to connect to the database
-###arcpy.AcceptConnections(dataBase, True)
-###logging.debug("Users allowed to connect to Comanche again")
-
+#####arcpy.AcceptConnections(dataBase, True)
+#####logging.debug("Users allowed to connect to Comanche again")
+#####print "Users allowed to connect to Comanche again"
 
 logging.debug("Script Completed")
 logging.debug(" ")
