@@ -2559,7 +2559,7 @@ INNER JOIN
   WHERE GRIDOP.RDWAY_STAT.RDWAY_STAT_TYPE_ID NOT IN(1, 2, 3)
   ) Query1 ON Query1.RDBD_GMTRY_LN_ID           = GRIDOP.RTE_DEFN_LN.RDBD_GMTRY_LN_ID
 WHERE GRIDOP.RTE_DEFN_LN.RTE_DEFN_LN_PRMRY_FLAG = 1
-AND GRIDOP.MDN_WIDTH.MDN_WIDTH_MS !=(0) 
+AND GRIDOP.MDN_WIDTH.MDN_WIDTH_MS !=(0)
 """
 
 #35 Memorial Highway
@@ -9079,7 +9079,7 @@ def Export(Query_Name,export_name=""):
     print tableName
 
     #Apply measures to exports
-    if(tableName == ("TxDOT_Control_Section" + Date)): ####changed this whole section from GRID to TxDOT, 4/16/2019
+    if(tableName == "TxDOT_Control_Section"): ####changed this whole section from GRID to TxDOT, 4/16/2019
         print "Working on applying measures."
         logging.debug("Applying measures for {}".format(export_name))
         applyMeasuresCS(tableName)
@@ -9470,11 +9470,11 @@ print Date
 #####Export(STRAHNET, ("STRAHNET" + Date))
 #####Export(Truck_Route, ("Truck_Route" + Date))
 #####Export(Usual_Right_Of_Way_Width, ("Usual_Right_Of_Way_Width" + Date))
-Export(Control_Section, ("Control_Section" + Date))
-Export(Street_Definition, ("Street_Definition" + Date))
-Export(Toll, ("Toll" + Date))
+#####Export(Control_Section, ("Control_Section")
+Export(Street_Definition, ("Street_Definition")
+Export(Toll, ("Toll")
 Export(Concurrencies, "Concurrencies")
-Export(Tunnel, ("Tunnel" + Date))
+Export(Tunnel, ("Tunnel")
 
 try:
 
@@ -9623,4 +9623,3 @@ logging.debug("Script Completed")
 logging.debug(" ")
 print "Export Complete Press Enter to Exit..."
 raw_input()
-
